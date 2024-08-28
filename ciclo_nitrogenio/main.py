@@ -1,86 +1,48 @@
 import pygame
 import sys
-import math
+from config import WIDTH, HEIGHT, WHITE, BLACK, STATES
+from molecule import NitrogenMolecule
+from terrain import draw_terrain
 
-class NitrogenCycle:
-    def __init__(self):
-        pygame.init()
-        self.width, self.height = 800, 600
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Ciclo do Nitrogênio Interativo")
-        
-        self.WHITE = (255, 255, 255)
-        self.BLACK = (0, 0, 0)
-        self.BLUE = (0, 0, 255)
-        self.GREEN = (0, 255, 0)
-        self.RED = (255, 0, 0)
-        self.YELLOW = (255, 255, 0)
-        
-        self.font = pygame.font.Font(None, 24)
-        self.clock = pygame.time.Clock()
-        
-        self.stages = [
-            {"name": "Fixação", "color": self.BLUE, "pos": (200, 300), "info": "Conversão de N2 atmosférico em formas utilizáveis"},
-            {"name": "Nitrificação", "color": self.GREEN, "pos": (400, 150), "info": "Conversão de amônia em nitrato"},
-            {"name": "Assimilação", "color": self.RED, "pos": (600, 300), "info": "Absorção de nitrogênio por organismos"},
-            {"name": "Desnitrificação", "color": self.YELLOW, "pos": (400, 450), "info": "Conversão de nitrato em N2 gasoso"}
-        ]
-        
-        self.selected_stage = None
+# Inicialização do Pygame
+pygame.init()
 
-    def draw_arrow(self, start, end):
-        pygame.draw.line(self.screen, self.BLACK, start, end, 2)
-        rotation = math.atan2(start[1] - end[1], end[0] - start[0])
-        pygame.draw.polygon(self.screen, self.BLACK, [
-            (end[0] + 20 * math.cos(rotation), end[1] - 20 * math.sin(rotation)),
-            (end[0] + 20 * math.cos(rotation + math.pi/6), end[1] - 20 * math.sin(rotation + math.pi/6)),
-            (end[0] + 20 * math.cos(rotation - math.pi/6), end[1] - 20 * math.sin(rotation - math.pi/6))
-        ])
+# Configurações da tela
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Ciclo do Nitrogênio")
 
-    def draw_cycle(self):
-        self.screen.fill(self.WHITE)
-        
-        for stage in self.stages:
-            pygame.draw.circle(self.screen, stage["color"], stage["pos"], 50)
-            text = self.font.render(stage["name"], True, self.BLACK)
-            text_rect = text.get_rect(center=(stage["pos"][0], stage["pos"][1] + 70))
-            self.screen.blit(text, text_rect)
-        
-        self.draw_arrow((250, 300), (350, 200))
-        self.draw_arrow((450, 150), (550, 250))
-        self.draw_arrow((600, 350), (450, 425))
-        self.draw_arrow((350, 450), (250, 350))
-        
-        if self.selected_stage:
-            info_text = self.font.render(self.selected_stage["info"], True, self.BLACK)
-            pygame.draw.rect(self.screen, self.WHITE, (50, 50, 700, 30))
-            self.screen.blit(info_text, (50, 50))
+# Criação da molécula
+molecule = NitrogenMolecule()
 
-    def handle_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                for stage in self.stages:
-                    distance = math.hypot(mouse_pos[0] - stage["pos"][0], mouse_pos[1] - stage["pos"][1])
-                    if distance <= 50:
-                        self.selected_stage = stage
-                        break
-                else:
-                    self.selected_stage = None
-        return True
+# Fonte para o texto
+font = pygame.font.Font(None, 36)
 
-    def run(self):
-        running = True
-        while running:
-            running = self.handle_events()
-            self.draw_cycle()
-            pygame.display.flip()
-            self.clock.tick(60)
-        
-        pygame.quit()
-        sys.exit()
+# Loop principal
+clock = pygame.time.Clock()
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
 
-if __name__ == "__main__":
-    NitrogenCycle().run()
+    # Obter as teclas pressionadas
+    keys = pygame.key.get_pressed()
+
+    screen.fill(WHITE)
+
+    # Determinar se o solo deve ser mostrado
+    show_ground = molecule.state != 0  # Mostra o solo se não estiver no estado gasoso
+
+    # Desenhar o terreno
+    draw_terrain(screen, show_ground)
+
+    # Atualização e desenho da molécula
+    molecule.update(keys)
+    molecule.draw(screen)
+
+    # Exibição do estado atual
+    text = font.render(STATES[molecule.state], True, BLACK)
+    screen.blit(text, (10, 10))
+
+    pygame.display.flip()
+    clock.tick(60)
